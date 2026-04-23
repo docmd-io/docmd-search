@@ -1,0 +1,41 @@
+{
+  "name": "docmd-search",
+  "version": "0.1.0",
+  "description": "Universal offline semantic search. AI-powered, client-side, zero cloud dependency.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "docmd-search": "dist/bin/docmd-search.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "types": "./dist/client/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch"
+  },
+  "keywords": [
+    "search",
+    "semantic-search",
+    "offline",
+    "client-side",
+    "vector-search",
+    "documentation",
+    "ai"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

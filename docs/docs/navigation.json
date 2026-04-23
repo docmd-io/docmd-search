@@ -1,0 +1,5 @@
+[
+  { "path": "index.md", "label": "Home" },
+  { "path": "getting-started.md", "label": "Getting Started" },
+  { "path": "architecture.md", "label": "Architecture" }
+]
