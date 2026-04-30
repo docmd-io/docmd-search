@@ -9,21 +9,27 @@ const shared = {
   minify: process.argv.includes('--minify'),
 };
 
+const nodeExternals = [
+  'onnxruntime-node',
+  '@huggingface/transformers',
+  'sharp',
+];
+
 // Main library (Node.js — build-time indexing)
 await build({
   ...shared,
   entryPoints: ['src/index.ts'],
   outfile: 'dist/index.js',
-  external: ['onnxruntime-node'],
+  external: nodeExternals,
 });
 
-// CLI
+// CLI (includes UI server — all Node.js built-ins, no extra deps)
 await build({
   ...shared,
   entryPoints: ['src/bin/docmd-search.ts'],
   outfile: 'dist/bin/docmd-search.js',
   banner: { js: '#!/usr/bin/env node' },
-  external: ['onnxruntime-node'],
+  external: nodeExternals,
 });
 
 // Client-side search runtime (browser)

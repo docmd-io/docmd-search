@@ -1,29 +1,66 @@
 {
-  "name": "@docmd-search/monorepo",
+  "name": "docmd-search",
   "version": "0.1.0",
-  "private": true,
-  "description": "Universal offline semantic search engine.",
+  "description": "Offline semantic search for everyone. Zero runtime deps, works with any docs.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "docmd-search": "dist/bin/docmd-search.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "types": "./dist/client/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "pnpm --filter docs dev",
-    "build": "pnpm -r run build",
-    "lint": "eslint .",
-    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist packages/*/site >/dev/null 2>&1;"
+    "build": "node build.js",
+    "dev": "node build.js --watch"
   },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^25.6.0",
-    "esbuild": "^0.28.0",
-    "eslint": "^10.2.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.58.2"
+  "keywords": [
+    "search",
+    "semantic-search",
+    "offline",
+    "client-side",
+    "vector-search",
+    "documentation",
+    "ai"
+  ],
+  "author": {
+    "name": "Ghazi",
+    "url": "https://mgks.dev"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/docmd-io/docmd-search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/docmd-io/docmd-search/issues"
+  },
+  "homepage": "https://docmd.io/search",
+  "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.12.1",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
+  "devDependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "esbuild": "^0.25.0",
+    "onnxruntime-node": "^1.24.3"
+  },
+  "peerDependencies": {
+    "@huggingface/transformers": "^4.0.0",
+    "onnxruntime-node": "^1.20.0"
+  },
+  "peerDependenciesMeta": {
+    "@huggingface/transformers": { "optional": true },
+    "onnxruntime-node": { "optional": true }
   }
 }
