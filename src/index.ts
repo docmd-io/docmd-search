@@ -7,4 +7,15 @@
 
 export { indexDirectory } from './indexer/index.js';
 export { createSearchIndex, loadSearchIndex } from './index-io.js';
+export {
+  resolveConfig,
+  loadGlobalConfig,
+  saveGlobalConfig,
+  getModelProfile,
+  getDefaultModel,
+  AVAILABLE_MODELS,
+  DEFAULT_CONFIG,
+  getGlobalDir,
+} from './config.js';
 export type { SearchIndex, SearchResult, IndexOptions, Chunk } from './types.js';
+export type { SearchConfig, ModelProfile, GlobalConfig } from './config.js';
