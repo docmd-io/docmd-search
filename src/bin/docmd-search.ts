@@ -30,6 +30,7 @@ import {
   runSetupWizard,
 } from '../tui.js';
 import { checkPeerDeps, formatMissingDepsMessage } from '../model.js';
+import { launchWebUI } from '../ui/launcher.js';
 import type { SearchResult, SearchIndex } from '../types.js';
 
 /* ── ANSI ──────────────────────────────────────────────────── */
@@ -202,12 +203,32 @@ console.log('');
 /* ── Launch UI or TUI ──────────────────────────────────────── */
 
 if (launchUI) {
-  // Web UI via docmd — Step 8 will implement launchWebUI()
-  // For now, print a placeholder
-  console.log(`   ${A.magenta}◆${A.reset} Web UI mode`);
-  console.log(`   ${A.dim}Web UI via docmd will be available in a future version.${A.reset}`);
-  console.log(`   ${A.dim}For now, using interactive TUI search.${A.reset}`);
+  console.log(`   ${A.magenta}◆${A.reset} Launching web UI via docmd...`);
   console.log('');
+
+  try {
+    const { close } = await launchWebUI({
+      rootDir: targetDir,
+      indexDir: outDir,
+      open: true,
+      verbose: isDev,
+    });
+
+    // Keep server running until Ctrl+C
+    process.on('SIGINT', () => {
+      close();
+      console.log(`\n   ${A.dim}server closed${A.reset}\n`);
+      process.exit(0);
+    });
+
+    // Block forever
+    await new Promise(() => {});
+  } catch (err: any) {
+    // launchWebUI prints its own error messages
+    // Fall through to TUI search as fallback
+    console.log(`   ${A.dim}Falling back to TUI search...${A.reset}`);
+    console.log('');
+  }
 }
 
 // ── Search Function ──────────────────────────────────────
