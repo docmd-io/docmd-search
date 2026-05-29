@@ -65,13 +65,13 @@ All new files within the `packages/` directory MUST include the standard project
 ```javascript
 /**
  * --------------------------------------------------------------------
- * docmd : the minimalist, zero-config documentation generator.
+ * docmd-search : offline semantic search for docs, zero-config.
  *
- * @package     @docmd/core (and ecosystem)
- * @website     https://docmd.io
- * @repository  https://github.com/docmd-io/docmd
+ * @package     docmd-search (and ecosystem)
+ * @website     https://docmd.io/search
+ * @repository  https://github.com/docmd-io/docmd-search
  * @license     MIT
- * @copyright   Copyright (c) 2025-present docmd.io
+ * @copyright   Copyright (c) 2026-present docmd.io
  *
  * [docmd-source] - Please do not remove this header.
  * --------------------------------------------------------------------
