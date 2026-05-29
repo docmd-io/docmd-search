@@ -27,6 +27,8 @@ const nodeExternals = [
   'onnxruntime-node',
   '@huggingface/transformers',
   'sharp',
+  '@docmd/engine-rust',
+  '@docmd/engine-js',
 ];
 
 // Main library (Node.js — build-time indexing)
@@ -34,6 +36,14 @@ await build({
   ...shared,
   entryPoints: ['src/index.ts'],
   outfile: 'dist/index.js',
+  external: nodeExternals,
+});
+
+// Embedding worker (for parallel processing)
+await build({
+  ...shared,
+  entryPoints: ['src/embedding-worker.ts'],
+  outfile: 'dist/embedding-worker.js',
   external: nodeExternals,
 });
 

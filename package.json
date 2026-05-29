@@ -1,13 +1,10 @@
 {
   "name": "docmd-search",
-  "version": "0.1.0",
-  "description": "Offline semantic search for everyone. Zero runtime deps, works with any docs.",
+  "version": "0.1.0-alpha.0",
+  "description": "Offline semantic search engine for documentation. Local embeddings, browser-ready indexes.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "docmd-search": "dist/bin/docmd-search.js"
-  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -16,11 +13,12 @@
     "./client": {
       "import": "./dist/client/index.js",
       "types": "./dist/client/index.d.ts"
-    }
+    },
+    "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
+  "bin": {
+    "docmd-search": "dist/bin/docmd-search.js"
+  },
   "scripts": {
     "build": "node build.js",
     "dev": "node build.js --watch",
@@ -29,6 +27,39 @@
     "typecheck": "npx tsc --noEmit --project tsconfig.base.json",
     "clean": "rm -rf dist node_modules *.tsbuildinfo tsconfig.check.json > /dev/null 2>&1 || true",
     "reset": "npm run clean && npm install --silent && npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "@types/node": "^25.9.1",
+    "esbuild": "^0.25.0",
+    "onnxruntime-node": "^1.26.0",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "@docmd/engine-js": ">=0.8.4",
+    "@docmd/engine-rust": ">=0.8.4",
+    "@huggingface/transformers": "^4.0.0",
+    "onnxruntime-node": "^1.20.0"
+  },
+  "peerDependenciesMeta": {
+    "@huggingface/transformers": {
+      "optional": true
+    },
+    "onnxruntime-node": {
+      "optional": true
+    },
+    "@docmd/engine-rust": {
+      "optional": true
+    },
+    "@docmd/engine-js": {
+      "optional": true
+    }
   },
   "keywords": [
     "search",
@@ -51,27 +82,5 @@
     "url": "https://github.com/docmd-io/docmd-search/issues"
   },
   "homepage": "https://docmd.io/search",
-  "license": "MIT",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "devDependencies": {
-    "@huggingface/transformers": "^4.2.0",
-    "@types/node": "^25.6.0",
-    "esbuild": "^0.25.0",
-    "onnxruntime-node": "^1.24.3",
-    "typescript": "^6.0.3"
-  },
-  "peerDependencies": {
-    "@huggingface/transformers": "^4.0.0",
-    "onnxruntime-node": "^1.20.0"
-  },
-  "peerDependenciesMeta": {
-    "@huggingface/transformers": {
-      "optional": true
-    },
-    "onnxruntime-node": {
-      "optional": true
-    }
-  }
+  "license": "MIT"
 }

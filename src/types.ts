@@ -66,7 +66,7 @@ export interface IndexOptions {
 
 /** A search result returned to the client. */
 export interface SearchResult {
-  /** Relevance score (0–1). */
+  /** Relevance score (0-1). */
   score: number;
   /** The matched chunk. */
   chunk: Chunk;

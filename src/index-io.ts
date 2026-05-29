@@ -105,8 +105,8 @@ export interface NavNode {
  * | Chunks    | Compression | Ratio |
  * |-----------|-------------|-------|
  * | < 100     | none        | 1x    |
- * | 100–2000  | ternary     | ~4x   |
- * | > 2000    | pq          | ~8–16x|
+ * | 100-2000  | ternary     | ~4x   |
+ * | > 2000    | pq          | ~8-16x|
  */
 export function getCompressionType(totalChunks: number): CompressionType {
   if (totalChunks >= 2000) return 'pq';

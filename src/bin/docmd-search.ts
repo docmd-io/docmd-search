@@ -39,6 +39,7 @@ import {
   runSearchTUI,
   runSettingsTUI,
   printBanner,
+  printEngineStatus,
   runSetupWizard,
 } from '../tui.js';
 import { checkPeerDeps, formatMissingDepsMessage } from '../model.js';
@@ -160,6 +161,7 @@ const outDir = join(targetDir, config.outDir);
 
 clearScreen();
 printBanner(version);
+await printEngineStatus();
 
 if (isDev) {
   console.log(`   ${A.dim}directory  ${targetDir}${A.reset}`);

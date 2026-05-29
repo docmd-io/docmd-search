@@ -43,41 +43,52 @@ export interface ModelProfile {
 }
 
 /**
- * Available embedding models — smallest first.
- * Default is always the smallest/fastest model.
- * Larger models are the user's choice via the setup wizard.
+ * Available embedding models.
+ *
+ * All models are loaded in Int8-quantized form (dtype: 'q8') which is
+ * 4× smaller and 2-3× faster than fp32 with minimal quality loss.
+ * The sizes shown are for the quantized ONNX weights.
+ *
+ * Language support:
+ *  - "multilingual" models handle 50-100+ languages (Chinese, German, etc.)
+ *  - "English" models are faster but degrade on non-English content
  */
 export const AVAILABLE_MODELS: ModelProfile[] = [
   {
+    // ~23 MB quantized. English-only but very fast — good for EN-only docs.
     id: 'Xenova/all-MiniLM-L6-v2',
-    name: 'MiniLM L6 v2',
+    name: 'MiniLM L6 v2 (English)',
     dimensions: 384,
-    description: 'Fastest, general purpose. Great for most documentation.',
-    size: '~30 MB',
+    description: 'Fastest. English-only. Best for single-language EN docs.',
+    size: '~23 MB',
     recommended: true,
   },
   {
-    id: 'Xenova/bge-small-en-v1.5',
-    name: 'BGE Small (English)',
+    // ~118 MB quantized. 50+ languages, same 384-dim output as MiniLM.
+    // Best all-round choice for multilingual docs.
+    id: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+    name: 'Multilingual MiniLM L12 v2',
     dimensions: 384,
-    description: 'English-optimised, slightly better quality than MiniLM.',
-    size: '~45 MB',
+    description: 'Multilingual (50+ langs incl. Chinese, German). Recommended for i18n docs.',
+    size: '~118 MB',
     recommended: false,
   },
   {
-    id: 'Xenova/bge-base-en-v1.5',
-    name: 'BGE Base (English)',
-    dimensions: 768,
-    description: 'Higher quality embeddings for English. Advanced users.',
-    size: '~110 MB',
+    // ~118 MB quantized. 100+ languages via mE5 architecture.
+    id: 'Xenova/multilingual-e5-small',
+    name: 'Multilingual E5 Small',
+    dimensions: 384,
+    description: 'Multilingual (100+ langs). Good retrieval quality.',
+    size: '~118 MB',
     recommended: false,
   },
   {
-    id: 'Xenova/all-mpnet-base-v2',
-    name: 'MPNet Base v2',
+    // ~270 MB quantized. Highest quality multilingual option.
+    id: 'Xenova/paraphrase-multilingual-mpnet-base-v2',
+    name: 'Multilingual MPNet Base v2',
     dimensions: 768,
-    description: 'Highest quality, multilingual. Slower but most accurate.',
-    size: '~110 MB',
+    description: 'Best multilingual quality (50+ langs). Larger and slower.',
+    size: '~270 MB',
     recommended: false,
   },
 ];

@@ -46,9 +46,12 @@ export async function crawl(
 
 /** Minimal glob matcher — supports ** and * only. */
 function matchSimpleGlob(path: string, pattern: string): boolean {
-  const regex = pattern
-    .replace(/\*\*/g, '§§')
-    .replace(/\*/g, '[^/]*')
-    .replace(/§§/g, '.*');
+  // Use placeholder to avoid double-replacement
+  let regex = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')  // escape regex chars
+    .replace(/\*\*/g, '§§')                 // placeholder for **
+    .replace(/\*/g, '[^/]*')                // * matches anything except /
+    .replace(/§§\//g, '(.*/)?')             // **/ matches zero or more path segments
+    .replace(/§§/g, '.*');                  // ** at end matches anything
   return new RegExp(`^${regex}$`).test(path);
 }

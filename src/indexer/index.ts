@@ -25,7 +25,7 @@
  */
 
 import { stat } from 'node:fs/promises';
-import { relative, join } from 'node:path';
+import { relative, join, isAbsolute } from 'node:path';
 import type { IndexOptions, SearchIndex, Chunk } from '../types.js';
 import { crawl } from './crawl.js';
 import { chunkDocuments } from './chunk.js';
@@ -43,6 +43,8 @@ import {
   saveNavigation,
 } from '../index-io.js';
 import type { IndexManifest, FileRecord } from '../index-io.js';
+import { detectChangedFiles, getDetectionMethod } from '../git-aware.js';
+import { getCachedModel } from '../model-cache.js';
 
 /* ── Progress Reporting ────────────────────────────────────── */
 
@@ -80,7 +82,7 @@ export interface IndexDirectoryOptions extends IndexOptions {
 /* ── Batch Size ────────────────────────────────────────────── */
 
 /** Number of chunks per batch file. */
-const CHUNKS_PER_BATCH = 64;
+const CHUNKS_PER_BATCH = 256;
 
 /* ── Main Pipeline ─────────────────────────────────────────── */
 
@@ -117,7 +119,10 @@ export async function indexDirectory(
     ...(modelOverride ? { model: modelOverride } : {}),
   });
 
-  const outDir = join(rootDir, config.outDir);
+  // If outDir is already absolute, use it as-is; otherwise join with rootDir
+  const outDir = isAbsolute(config.outDir)
+    ? config.outDir
+    : join(rootDir, config.outDir);
   const modelProfile = getModelProfile(config.model);
 
   const notify = (phase: IndexPhase, current: number, total: number, file?: string, message?: string) => {
@@ -144,19 +149,11 @@ export async function indexDirectory(
       notify('crawling', 0, 0, undefined, 'Resuming interrupted indexing...');
     }
 
-    // Filter to only changed/new files
-    const changed: string[] = [];
-    for (const fp of filePaths) {
-      const rel = relative(rootDir, fp);
-      const fileInfo = await stat(fp);
-      const existing = existingManifest.files[rel];
-
-      if (!existing ||
-          existing.mtime !== fileInfo.mtimeMs ||
-          existing.size !== fileInfo.size) {
-        changed.push(fp);
-      }
-    }
+    // Detect changed files using git (if available) or mtime fallback
+    const detectionMethod = await getDetectionMethod(rootDir);
+    notify('crawling', 0, 0, undefined, `Detecting changes (${detectionMethod})...`);
+    
+    const changed = await detectChangedFiles(rootDir, filePaths, existingManifest.files);
 
     if (changed.length === 0 && existingManifest.status === 'complete') {
       notify('complete', filePaths.length, filePaths.length, undefined,
@@ -168,6 +165,11 @@ export async function indexDirectory(
     }
 
     filesToIndex = changed.length > 0 ? changed : filePaths;
+    
+    if (changed.length > 0) {
+      notify('crawling', changed.length, filePaths.length, undefined,
+        `Found ${changed.length} changed files (${detectionMethod})`);
+    }
   }
 
   // ── Phase 2: Chunk ──────────────────────────────────────
@@ -213,8 +215,8 @@ export async function indexDirectory(
   let allVectors: Int8Array[] = [];
 
   try {
-    // Create model manager with progress forwarding
-    modelManager = createModelManager(config.model, (p) => {
+    // Use cached model manager (keeps model in memory for subsequent runs)
+    modelManager = await getCachedModel(config.model, (p) => {
       if (p.phase === 'downloading') {
         notify('downloading-model', p.progress ?? 0, 100, undefined,
           p.message);
@@ -222,31 +224,41 @@ export async function indexDirectory(
     });
 
     notify('downloading-model', 0, 100, undefined, 'Loading embedding model...');
-    await modelManager.load();
 
-    // Embed in batches and save progressively
+// ── Embedding ──────────────────────────────────────────────
+  // Note: Worker-based parallel embedding was explored but abandoned —
+  // each worker loads the model independently (~30s each), making it slower.
+  // Sequential embedding with large batches is the optimal approach.
+  const allTexts = chunks.map(c => c.text);
+
+  notify('embedding', 0, chunks.length, undefined, 'Generating embeddings...');
+
+  // embed() handles internal batching (BATCH_SIZE in model.ts).
+  // Pass all texts at once — no outer loop needed.
+  const allFloatVectors = await modelManager.embed(allTexts, (current, total) => {
+    notify('embedding', current, total, chunks[current - 1]?.file,
+      `Embedding ${current}/${total} chunks`);
+  });
+    
+    // Quantize all vectors at once (Rust engine accelerates this)
+    notify('embedding', chunks.length, chunks.length, undefined, 'Quantizing vectors...');
+    const allInt8Vectors = await quantizeToInt8(allFloatVectors);
+
+    // ── Save in batches (progressive) ──────────────────────
     let batchId = existingManifest?.batchCount ?? 0;
     const totalBatches = Math.ceil(chunks.length / CHUNKS_PER_BATCH);
     const compression = getCompressionType(chunks.length);
 
     for (let i = 0; i < chunks.length; i += CHUNKS_PER_BATCH) {
       const batchChunks = chunks.slice(i, i + CHUNKS_PER_BATCH);
-      const batchTexts = batchChunks.map(c => c.text);
+      const batchVectors = allInt8Vectors.slice(i, i + CHUNKS_PER_BATCH);
 
-      notify('embedding', i, chunks.length, batchChunks[0]?.file,
-        `Embedding batch ${batchId + 1}/${totalBatches}...`);
-
-      // Generate real embeddings
-      const floatVectors = await modelManager.embed(batchTexts);
-      const int8Vectors = quantizeToInt8(floatVectors);
-
-      // Save batch immediately (progressive)
       notify('saving', batchId, totalBatches, undefined,
-        `Saving batch ${batchId + 1}...`);
+        `Saving batch ${batchId + 1}/${totalBatches}...`);
 
-      await saveBatch(outDir, batchId, batchChunks, int8Vectors, modelProfile.dimensions, compression);
+      await saveBatch(outDir, batchId, batchChunks, batchVectors, modelProfile.dimensions, compression);
 
-      allVectors.push(...int8Vectors);
+      allVectors.push(...batchVectors);
 
       // Update manifest
       manifest.batchCount = batchId + 1;
@@ -263,7 +275,8 @@ export async function indexDirectory(
     // so the index is still partially searchable
     if (chunks.length > 0 && allVectors.length === 0) {
       // No embeddings at all — save chunks with zero vectors as fallback
-      const zeroVectors = chunks.map(() => new Int8Array(modelProfile.dimensions));
+      const zeroFloats = chunks.map(() => new Float32Array(modelProfile.dimensions));
+      const zeroVectors = await quantizeToInt8(zeroFloats);
       await saveBatch(outDir, 0, chunks, zeroVectors, modelProfile.dimensions, 'none');
       manifest.batchCount = 1;
       manifest.totalChunks = chunks.length;

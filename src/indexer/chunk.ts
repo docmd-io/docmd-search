@@ -15,6 +15,7 @@
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
 import type { Chunk } from '../types.js';
+import { runTask } from '../engine.js';
 
 /** Split documents into overlapping chunks by approximate token count. */
 export async function chunkDocuments(
@@ -28,8 +29,21 @@ export async function chunkDocuments(
   for (const file of files) {
     const content = await readFile(file, 'utf-8');
     const rel = relative(rootDir, file);
-    const fileChunks = chunkText(content, rel, chunkSize, chunkOverlap);
-    chunks.push(...fileChunks);
+
+    // Try engine-accelerated chunking first
+    const engineChunks = await runTask<Chunk[]>('search:chunk', {
+      text: content,
+      file: rel,
+      chunkSize,
+      chunkOverlap,
+    });
+
+    if (engineChunks && engineChunks.length > 0) {
+      chunks.push(...engineChunks);
+    } else {
+      // Inline fallback (mirrors the engine implementation)
+      chunks.push(...chunkText(content, rel, chunkSize, chunkOverlap));
+    }
   }
 
   return chunks;

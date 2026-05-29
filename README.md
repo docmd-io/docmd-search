@@ -9,9 +9,9 @@
   
   <!-- ONE LINE SUMMARY -->
   <p>
-    <b>Offline semantic search for any documentation.</b>
+    <b>Offline semantic search engine for documentation.</b>
     <br/>
-    Semantic indexing at build time. Pure math in the browser.
+    Local embeddings, browser-ready indexes.
   </p>
   
   <!-- BADGES -->
@@ -25,8 +25,8 @@
   <!-- MENU -->
   <p>
     <h4>
-      <a href="https://docmd.io/search">Website</a> • 
-      <a href="https://docmd.io">docmd</a> • 
+      <a href="https://docmd.io/search/">Website</a> • 
+      <a href="https://docs.docmd.io/search/">Documentation</a> • 
       <a href="https://github.com/docmd-io/docmd-search/issues">Report Bug</a>
     </h4>
   </p>

@@ -55,14 +55,24 @@ export type { SearchConfig, ModelProfile, GlobalConfig } from './config.js';
 export {
   createModelManager,
   quantizeToInt8,
+  getQuantizeEngine,
   checkPeerDeps,
   formatMissingDepsMessage,
 } from './model.js';
 export type { ModelManager, ModelProgress, OnModelProgress } from './model.js';
 
+// ── Engine Adapter ───────────────────────────────────────
+export {
+  getEngine,
+  runTask,
+  getActiveEngineId,
+} from './engine.js';
+export type { Engine, EngineTask, EngineResult } from './engine.js';
+
 // ── TUI ──────────────────────────────────────────────────
 export {
   printBanner,
+  printEngineStatus,
   clearScreen,
   createProgressDisplay,
   runSetupWizard,

@@ -27,6 +27,7 @@ import { AVAILABLE_MODELS, saveGlobalConfig, loadGlobalConfig, getModelProfile }
 import type { ModelProfile, GlobalConfig } from './config.js';
 import type { IndexProgress, IndexPhase } from './indexer/index.js';
 import type { SearchResult } from './types.js';
+import { getActiveEngineId } from './engine.js';
 
 /* ── ANSI Codes ────────────────────────────────────────────── */
 
@@ -53,8 +54,9 @@ const A = {
 const BANNER = `
    ${A.magenta}     _                 _${A.reset}
    ${A.magenta}  __| |___ ___ _____ _| |${A.reset}
-   ${A.magenta} | . | . |  _|     | . |${A.reset}${A.dim}-search${A.reset}
-   ${A.magenta} |___|___|___|_|_|_|___|${A.reset}
+   ${A.magenta} | .  | . |  _|     | . |${A.reset}
+   ${A.magenta} |____|___|___|_|_|_|___|${A.reset}
+   ${A.dim} SEARCH${A.reset}
 `;
 
 /** Print the docmd-search banner. */
@@ -64,6 +66,25 @@ export function printBanner(version?: string): void {
     console.log(`   ${A.dim}v${version} · offline semantic search${A.reset}`);
     console.log('');
   }
+}
+
+/**
+ * Print engine status line (Rust / JS / built-in).
+ * Called after banner so the user knows which backend is active.
+ */
+export async function printEngineStatus(): Promise<void> {
+  const id = await getActiveEngineId();
+  switch (id) {
+    case 'rust':
+      console.log(`   ${A.magenta}⚡${A.reset} ${A.bold}Rust engine${A.reset} ${A.dim}(accelerated)${A.reset}`);
+      break;
+    case 'js':
+      console.log(`   ${A.cyan}◆${A.reset} ${A.bold}JS engine${A.reset} ${A.dim}(docmd)${A.reset}`);
+      break;
+    default:
+      console.log(`   ${A.dim}◇ built-in engine${A.reset}`);
+  }
+  console.log('');
 }
 
 /** Clear the terminal screen. */
