@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Upgrade npm (required for OIDC provenance)
         run: npm install -g npm@11.12.1
