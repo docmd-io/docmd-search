@@ -36,7 +36,7 @@
 import { writeFile, mkdir, copyFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 
 /* ── ANSI ──────────────────────────────────────────────────── */
 
@@ -85,6 +85,7 @@ export default {
     // and just reads from indexDir. No callback to docmd-search package.
     search: {
       semantic: true,
+      showConfidence: true,
       indexDir: '${absIndexDir}',
     },
   },
@@ -285,19 +286,36 @@ Results will appear here as you type.
   // ── Spawn docmd ──────────────────────────────────────
 
   return new Promise((resolvePromise, reject) => {
-    const args = [
-      '-y', '@docmd/core',
-      'dev',
-      '--config', join(stagingDir, 'docmd.config.js'),
-    ];
+    // Resolve the docmd binary:
+    // 1. Local node_modules/.bin/docmd (from the rootDir or CWD)
+    // 2. Globally installed docmd in PATH
+    // 3. Fall back to: npx @docmd/core
+    const resolvedBinary = resolveDocmdBinary(rootDir);
+    let command: string;
+    let args: string[];
+
+    if (resolvedBinary) {
+      command = resolvedBinary;
+      args = ['dev', '--config', join(stagingDir, 'docmd.config.js')];
+      if (verbose) {
+        console.log(`   ${A.dim}using docmd at: ${resolvedBinary}${A.reset}`);
+      }
+    } else {
+      // Fall back to npx
+      command = 'npx';
+      args = ['-y', '@docmd/core', 'dev', '--config', join(stagingDir, 'docmd.config.js')];
+      if (verbose) {
+        console.log(`   ${A.dim}falling back to: npx @docmd/core${A.reset}`);
+      }
+    }
 
     if (port > 0) {
       args.push('--port', String(port));
     }
 
-    const child = spawn('npx', args, {
+    const child = spawn(command, args, {
       cwd: rootDir,
-      stdio: verbose ? 'inherit' : 'pipe',
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
         DOCMD_SEARCH_INDEX: indexDir,
@@ -307,10 +325,11 @@ Results will appear here as you type.
     let resolvedPort = port || 3000;
     let resolved = false;
 
-    // Parse stdout for port detection
-    if (!verbose && child.stdout) {
+    // Always parse stdout for port detection; optionally forward to terminal
+    if (child.stdout) {
       child.stdout.on('data', (data: Buffer) => {
         const line = data.toString();
+        if (verbose) process.stdout.write(line);
 
         // Detect port from docmd output
         const portMatch = line.match(/localhost:(\d+)/);
@@ -335,6 +354,10 @@ Results will appear here as you type.
           });
         }
       });
+    }
+
+    if (child.stderr && verbose) {
+      child.stderr.on('data', (data: Buffer) => process.stderr.write(data));
     }
 
     // Handle errors
@@ -394,4 +417,52 @@ function openBrowser(url: string): void {
   } catch {
     // Silently fail — user can open manually
   }
+}
+
+/* ── Binary Resolver ───────────────────────────────────────── */
+
+/**
+ * Resolve the docmd CLI binary.
+ *
+ * Priority:
+ *  1. Local node_modules/.bin/docmd (rootDir or CWD)
+ *  2. docmd in PATH (global install)
+ *  3. Returns null → caller falls back to npx
+ */
+function resolveDocmdBinary(rootDir: string): string | null {
+  const absRootDir = resolve(rootDir);
+
+  // Walk up from rootDir and CWD looking for node_modules/.bin/docmd
+  const searchRoots = [absRootDir, resolve(process.cwd())];
+  const visited = new Set<string>();
+
+  for (const start of searchRoots) {
+    let dir = start;
+    while (true) {
+      if (visited.has(dir)) break;
+      visited.add(dir);
+
+      const candidate = join(dir, 'node_modules', '.bin', 'docmd');
+      if (existsSync(candidate)) return candidate;
+
+      const parent = join(dir, '..');
+      if (parent === dir) break; // filesystem root
+      dir = parent;
+    }
+  }
+
+  // Check global PATH
+  try {
+    const whichCmd = process.platform === 'win32' ? 'where docmd' : 'which docmd';
+    const result = execSync(whichCmd, { stdio: 'pipe' })
+      .toString()
+      .trim()
+      .split('\n')[0]
+      .trim();
+    if (result && existsSync(result)) return result;
+  } catch {
+    // Not in PATH
+  }
+
+  return null;
 }
