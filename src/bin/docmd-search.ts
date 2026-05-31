@@ -289,7 +289,10 @@ function performSearch(idx: SearchIndex, query: string, topK: number = 10): Sear
           normB += vec[j] * vec[j];
         }
         const cosine = dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
-        s.score = s.score * 0.6 + cosine * 0.4;
+        // Normalize keyword score to [0,1] using sigmoid-like function
+        // to prevent scores exceeding 100%
+        const normalizedKw = s.score / (s.score + 1);
+        s.score = normalizedKw * 0.6 + cosine * 0.4;
       }
     }
   }

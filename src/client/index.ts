@@ -172,7 +172,10 @@ export function search(query: string, topK: number = 10): SearchResult[] {
         const vec = _index.vectors[s.idx];
         if (vec) {
           const sim = cosineSimilarity(bestVec, vec);
-          s.score = s.score * 0.6 + sim * 0.4;
+          // Normalize keyword score to [0,1] using sigmoid-like function
+          // to prevent scores exceeding 100%
+          const normalizedKw = s.score / (s.score + 1);
+          s.score = normalizedKw * 0.6 + sim * 0.4;
         }
       }
     }
