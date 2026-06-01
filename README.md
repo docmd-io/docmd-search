@@ -22,6 +22,10 @@
     <a href="https://github.com/docmd-io/docmd-search/blob/main/LICENSE"><img src="https://img.shields.io/github/license/docmd-io/docmd-search.svg?style=flat-square&color=A31F34" alt="license"></a>
   </p>
 
+<p align="center">
+  <a href="#"><img width="860" alt="docmd-search preview" src="https://github.com/user-attachments/assets/5064ccf7-462b-4905-b05b-2a4079241818" /></a>
+</p>
+
   <!-- MENU -->
   <p>
     <h4>
