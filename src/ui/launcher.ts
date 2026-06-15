@@ -19,7 +19,7 @@
  * runs `docmd-search ./docs --ui`, docmd-search:
  *
  *   1. Indexes the directory (builds .docmd-search/ batches) — its own job.
- *   2. Writes a self-contained docmd.config.js into .docmd-search/_ui/.
+ *   2. Writes a self-contained docmd.config.json into .docmd-search/_ui/.
  *   3. Spawns `npx @docmd/core dev` pointed at that config.
  *
  * The generated config tells docmd to use its own plugin-search with
@@ -53,7 +53,7 @@ const A = {
 /* ── Config Generation ─────────────────────────────────────── */
 
 /**
- * Generate a docmd.config.js tailored for docmd-search's web UI.
+ * Generate a docmd.config.json tailored for docmd-search's web UI.
  *
  * Key architecture points:
  *  - docmd-search has ALREADY built the semantic index at this point
@@ -215,7 +215,7 @@ export interface LaunchOptions {
  * Launch the docmd web UI for docmd-search.
  *
  * Creates a staging area inside .docmd-search/ with:
- * - docmd.config.js (auto-generated)
+ * - docmd.config.json (auto-generated)
  * - custom.css (magenta branding)
  *
  * Then spawns `npx @docmd/core dev` pointing at the target directory.
@@ -237,7 +237,7 @@ export async function launchWebUI(options: LaunchOptions): Promise<{
 
   // Write docmd config
   const configContent = generateDocmdConfig(rootDir, indexDir);
-  await writeFile(join(stagingDir, 'docmd.config.js'), configContent, 'utf-8');
+  await writeFile(join(stagingDir, 'docmd.config.json'), configContent, 'utf-8');
 
   // Copy navigation.json from index into rootDir so docmd picks it up
   // docmd reads navigation.json from the docs source directory automatically
@@ -296,14 +296,14 @@ Results will appear here as you type.
 
     if (resolvedBinary) {
       command = resolvedBinary;
-      args = ['dev', '--config', join(stagingDir, 'docmd.config.js')];
+      args = ['dev', '--config', join(stagingDir, 'docmd.config.json')];
       if (verbose) {
         console.log(`   ${A.dim}using docmd at: ${resolvedBinary}${A.reset}`);
       }
     } else {
       // Fall back to npx
       command = 'npx';
-      args = ['-y', '@docmd/core', 'dev', '--config', join(stagingDir, 'docmd.config.js')];
+      args = ['-y', '@docmd/core', 'dev', '--config', join(stagingDir, 'docmd.config.json')];
       if (verbose) {
         console.log(`   ${A.dim}falling back to: npx @docmd/core${A.reset}`);
       }
