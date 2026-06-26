@@ -1,6 +1,6 @@
 {
   "name": "docmd-search",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0",
   "description": "Offline semantic search engine for documentation. Local embeddings, browser-ready indexes.",
   "type": "module",
   "main": "dist/index.js",
@@ -8,16 +8,24 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./client": {
       "import": "./dist/client/index.js",
-      "types": "./dist/client/index.d.ts"
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
     },
     "./package.json": "./package.json"
   },
   "bin": {
     "docmd-search": "dist/bin/docmd-search.js"
+  },
+  "docmd": {
+    "key": "docmd-search",
+    "kind": "search-engine",
+    "displayName": "docmd-search",
+    "tagline": "Offline semantic search engine for documentation. Local embeddings, browser-ready indexes."
   },
   "scripts": {
     "build": "node build.js",
@@ -68,7 +76,9 @@
     "client-side",
     "vector-search",
     "documentation",
-    "embeddings"
+    "embeddings",
+    "docmd",
+    "markdown"
   ],
   "author": {
     "name": "Ghazi",
