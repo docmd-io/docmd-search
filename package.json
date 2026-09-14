@@ -1,6 +1,6 @@
 {
   "name": "docmd-search",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Offline semantic search engine for documentation. Local embeddings, browser-ready indexes.",
   "type": "module",
   "main": "dist/index.js",
@@ -44,18 +44,18 @@
   },
   "devDependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "@types/node": "^25.9.5",
-    "adm-zip": ">=0.6.0",
-    "esbuild": "^0.28.1",
-    "onnxruntime-node": "^1.27.0",
-    "protobufjs": "^7.6.5",
+    "@types/node": "^26.5.1",
+    "adm-zip": ">=0.6.1",
+    "esbuild": "^0.28.2",
+    "onnxruntime-node": "^1.29.0",
+    "protobufjs": "^8.8.0",
     "sharp": "^0.35.4",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "overrides": {
-    "onnxruntime-node": "^1.27.0",
-    "protobufjs": "^7.6.5",
-    "adm-zip": ">=0.6.0",
+    "onnxruntime-node": "^1.29.0",
+    "protobufjs": "^8.8.0",
+    "adm-zip": ">=0.6.1",
     "sharp": "^0.35.4"
   },
   "peerDependencies": {
@@ -91,9 +91,9 @@
     }
   },
   "allowScripts": {
-    "esbuild@0.28.1": true,
-    "onnxruntime-node@1.27.0": true,
-    "protobufjs@7.6.5": true,
+    "esbuild@0.28.2": true,
+    "onnxruntime-node@1.29.0": true,
+    "protobufjs@8.8.0": true,
     "sharp@0.35.4": true
   },
   "keywords": [
