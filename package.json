@@ -61,6 +61,7 @@
   "peerDependencies": {
     "@docmd/engine-js": ">=0.8.10",
     "@docmd/engine-rust": ">=0.8.10",
+    "@docmd/engine-python": ">=0.8.10",
     "@huggingface/transformers": "^4.2.0",
     "onnxruntime-node": ">=1.27.0",
     "adm-zip": ">=0.6.0",
@@ -84,6 +85,9 @@
       "optional": true
     },
     "@docmd/engine-rust": {
+      "optional": true
+    },
+    "@docmd/engine-python": {
       "optional": true
     },
     "@docmd/engine-js": {

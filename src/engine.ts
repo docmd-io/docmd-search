@@ -17,17 +17,18 @@
  *
  * Provides a unified task-runner interface that:
  *   1. Tries @docmd/engine-rust (pre-compiled native binary) — fastest
- *   2. Falls back to @docmd/engine-js (pure Node.js) — if rust binary missing
- *   3. Falls back to built-in inline JS — if neither docmd engine is installed
+ *   2. Tries @docmd/engine-python (persistent Python 3 worker) — high performance
+ *   3. Falls back to @docmd/engine-js (pure Node.js) — standard JS
+ *   4. Falls back to built-in inline JS — if neither docmd engine is installed
  *
  * docmd-search does NOT require the docmd engines. When running standalone
  * (npx docmd-search), all tasks fall through to the built-in fallback.
  * When running inside a docmd project, the engines are already installed and
- * the Rust engine accelerates chunking + quantization.
+ * the native or Python engines accelerate chunking + quantisation.
  *
  * Tasks used by docmd-search:
  *   search:chunk     — split text into overlapping chunks by heading + word count
- *   search:quantize  — Float32[] → Int8[] per-vector quantization
+ *   search:quantize  — Float32[] → Int8[] per-vector quantisation
  *   search:cosine    — batch cosine similarity scoring (for client-side search)
  */
 
@@ -51,50 +52,92 @@ export interface Engine {
   supports?(taskType: string): boolean;
 }
 
+import * as path from 'node:path';
+import { createRequire } from 'node:module';
+
 /* ── Engine Resolution ─────────────────────────────────────── */
 
-type EngineId = 'rust' | 'js' | 'builtin';
+export type EngineId = 'rust' | 'python' | 'js' | 'builtin';
 
 let _engine: Engine | null = null;
 let _engineId: EngineId = 'builtin';
+let _preference: EngineId | null = null;
+
+async function tryImportEngine(pkgName: string): Promise<any> {
+  try {
+    return await import(pkgName);
+  } catch {
+    try {
+      const req = createRequire(path.join(process.cwd(), 'package.json'));
+      const resolved = req.resolve(pkgName);
+      return await import(resolved);
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
+ * Set an explicit engine preference (e.g., 'python', 'rust', 'js').
+ */
+export function setEnginePreference(pref: EngineId | null): void {
+  _preference = pref;
+  _engine = null;
+}
 
 /**
  * Load the best available engine.
  * Result is cached — the engine is resolved once and reused.
  */
-export async function getEngine(): Promise<{ engine: Engine; id: EngineId }> {
+export async function getEngine(preferredId?: EngineId): Promise<{ engine: Engine; id: EngineId }> {
+  if (preferredId) {
+    _preference = preferredId;
+    _engine = null;
+  }
   if (_engine) return { engine: _engine, id: _engineId };
 
-  // ── Attempt 1: @docmd/engine-rust ───────────────────────
-  try {
-    // Dynamic import — optional package, may not be installed
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore — optional peer dep, not in node_modules of docmd-search
-    const rustMod: any = await import('@docmd/engine-rust');
-    if (typeof rustMod.isRustEngineAvailable === 'function' && rustMod.isRustEngineAvailable()) {
-      _engine = rustMod.createRustEngine() as Engine;
-      _engineId = 'rust';
-      return { engine: _engine, id: _engineId };
+  const attempts: EngineId[] = _preference
+    ? ([_preference, 'rust', 'python', 'js'] as EngineId[]).filter((v, i, a) => a.indexOf(v) === i)
+    : ['rust', 'python', 'js'];
+
+  for (const candidate of attempts) {
+    if (candidate === 'rust') {
+      try {
+        const rustMod = await tryImportEngine('@docmd/engine-rust');
+        if (rustMod && typeof rustMod.isRustEngineAvailable === 'function' && rustMod.isRustEngineAvailable()) {
+          _engine = rustMod.createRustEngine() as Engine;
+          _engineId = 'rust';
+          return { engine: _engine, id: _engineId };
+        }
+      } catch {
+        // Not installed or binary missing — try next
+      }
+    } else if (candidate === 'python') {
+      try {
+        const pyMod = await tryImportEngine('@docmd/engine-python');
+        if (pyMod && typeof pyMod.isPythonEngineAvailable === 'function' && pyMod.isPythonEngineAvailable()) {
+          _engine = pyMod.createPythonEngine() as Engine;
+          _engineId = 'python';
+          return { engine: _engine, id: _engineId };
+        }
+      } catch {
+        // Not installed or Python 3 missing — try next
+      }
+    } else if (candidate === 'js') {
+      try {
+        const jsMod = await tryImportEngine('@docmd/engine-js');
+        if (jsMod && typeof jsMod.createJsEngine === 'function') {
+          _engine = jsMod.createJsEngine() as Engine;
+          _engineId = 'js';
+          return { engine: _engine, id: _engineId };
+        }
+      } catch {
+        // Try built-in fallback
+      }
     }
-  } catch {
-    // Not installed or binary missing — try JS engine
   }
 
-  // ── Attempt 2: @docmd/engine-js ─────────────────────────
-  try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore — optional peer dep, not in node_modules of docmd-search
-    const jsMod: any = await import('@docmd/engine-js');
-    if (typeof jsMod.createJsEngine === 'function') {
-      _engine = jsMod.createJsEngine() as Engine;
-      _engineId = 'js';
-      return { engine: _engine, id: _engineId };
-    }
-  } catch {
-    // Neither docmd engine is available — use built-in fallback
-  }
-
-  // ── Attempt 3: Built-in inline fallback ─────────────────
+  // Final fallback: Built-in inline fallback
   _engine = createBuiltinEngine();
   _engineId = 'builtin';
   return { engine: _engine, id: _engineId };
@@ -103,7 +146,7 @@ export async function getEngine(): Promise<{ engine: Engine; id: EngineId }> {
 /**
  * Run a task using the best available engine.
  * If the primary engine fails on a search:* task, falls through to the next
- * engine in the chain (rust → js → builtin).
+ * engine in the chain (rust → python → js → builtin).
  * Throws if the task fails and `throwOnError` is true (default false).
  */
 export async function runTask<T = any>(
@@ -127,16 +170,32 @@ export async function runTask<T = any>(
 }
 
 /**
- * Try JS engine then built-in fallback for search tasks.
+ * Try Python, JS engine, then built-in fallback for search tasks.
  * Returns undefined if no fallback could handle it.
  */
 async function runTaskWithFallback<T>(type: string, payload: any): Promise<T | null | undefined> {
-  // If primary is rust, try JS engine
+  // If primary is rust, try python then JS engine
   if (_engineId === 'rust') {
     try {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore — optional peer dep, not in node_modules of docmd-search
-      const jsMod: any = await import('@docmd/engine-js').catch(() => null);
+      const pyMod = await tryImportEngine('@docmd/engine-python');
+      if (pyMod?.isPythonEngineAvailable?.()) {
+        const pyEngine = pyMod.createPythonEngine() as Engine;
+        const pyResult = await pyEngine.run<T>({ type, payload });
+        if (pyResult.success) return pyResult.data ?? null;
+      }
+    } catch { /* fall through */ }
+
+    try {
+      const jsMod = await tryImportEngine('@docmd/engine-js');
+      if (jsMod?.createJsEngine) {
+        const jsEngine = jsMod.createJsEngine() as Engine;
+        const jsResult = await jsEngine.run<T>({ type, payload });
+        if (jsResult.success) return jsResult.data ?? null;
+      }
+    } catch { /* fall through to built-in */ }
+  } else if (_engineId === 'python') {
+    try {
+      const jsMod = await tryImportEngine('@docmd/engine-js');
       if (jsMod?.createJsEngine) {
         const jsEngine = jsMod.createJsEngine() as Engine;
         const jsResult = await jsEngine.run<T>({ type, payload });

@@ -28,6 +28,7 @@ const nodeExternals = [
   '@huggingface/transformers',
   'sharp',
   '@docmd/engine-rust',
+  '@docmd/engine-python',
   '@docmd/engine-js',
 ];
 
